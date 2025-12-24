@@ -86,46 +86,71 @@ To access the application via a custom domain instead of `localhost`, you need t
 
 
 
-## 3. Development Workflow
+## 3. Quick Start (Automated)
 
-Since Kind runs in a Docker container, it cannot see images built locally on your machine unless you explicitly load them.
+Once your cluster is set up, use the automation script for a one-command deployment:
+
+```bash
+./build-and-deploy.sh
+```
+
+This script will:
+1. Build the JAR with Maven
+2. Create the Docker image (`hello-k8s-spring:v1`)
+3. Load the image into the Kind cluster
+4. Apply all Kubernetes resources (ConfigMap, Deployment, Service, Ingress)
+5. Restart the deployment to pick up changes
+
+## 4. Development Workflow
+
+### Option A: Automated (Recommended)
+
+```bash
+./build-and-deploy.sh
+```
+
+### Option B: Manual Steps
+
+Since Kind runs in a Docker container, it cannot see images built locally unless you explicitly load them.
 
 **1. Package the Application**
 
 ```bash
 ./mvnw clean package -DskipTests
-
 ```
 
 **2. Build Docker Image**
 
 ```bash
 docker build -t hello-k8s-spring:v1 .
-
 ```
 
 **3. Load Image into Cluster**
-Required every time you rebuild the image with a new tag or change code.
 
 ```bash
 kind load docker-image hello-k8s-spring:v1 --name desktop
-
 ```
 
 **4. Deploy to Kubernetes**
 
 ```bash
 kubectl apply -f k8s-deployment.yaml
-
 ```
 
-## 4. Access & Verification
+**5. Restart Deployment (if updating existing deployment)**
+
+```bash
+kubectl rollout restart deployment/spring-api-deployment
+```
+
+
+## 5. Access & Verification
 
 Once deployed, the application should be accessible from your Windows browser.
 
-* **Application Root:** `http://my-app.local/`  
-* **Test the api:** `http://my-app.local/hello`
-* **Health Check:** `http://my-app.local/actuator/health`
+*   **Application Root:** `http://my-app.local/`  
+*   **Test the api:** `http://my-app.local/hello`
+*   **Health Check:** `http://my-app.local/actuator/health`
 
 ### Troubleshooting Commands
 

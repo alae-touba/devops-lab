@@ -1,3 +1,14 @@
+# --- PART 0: CONFIGMAP (The "Configuration Store") ---
+# This stores configuration data that can be injected into containers.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-app-config
+data:
+  APP_MESSAGE: "Hey k8s🚀"
+
+---
+
 # --- PART 1: DEPLOYMENT (The "Brain") ---
 # This defines HOW to run your Spring Boot containers.
 apiVersion: apps/v1
@@ -23,6 +34,13 @@ spec:
           imagePullPolicy: Never      
           ports:
             - containerPort: 8080     # Port Spring Boot listens on
+          # Inject ConfigMap values as environment variables
+          env:
+            - name: APP_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: spring-app-config
+                  key: APP_MESSAGE
           # Best Practice: Readiness check ensures traffic only goes to "warm" apps
           readinessProbe:
             httpGet:
