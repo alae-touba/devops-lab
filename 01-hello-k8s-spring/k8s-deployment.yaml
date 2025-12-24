@@ -1,0 +1,74 @@
+# --- PART 1: DEPLOYMENT (The "Brain") ---
+# This defines HOW to run your Spring Boot containers.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-api-deployment
+  labels:
+    app: hello-k8s-spring
+spec:
+  replicas: 2               # Runs 2 copies for high availability
+  selector:
+    matchLabels:
+      app: hello-k8s-spring
+  template:
+    metadata:
+      labels:
+        app: hello-k8s-spring
+    spec:
+      containers:
+        - name: spring-api-container
+          image: hello-k8s-spring:v1
+          # CRITICAL for local Kind/WSL: Tells K8s not to look on Docker Hub
+          imagePullPolicy: Never      
+          ports:
+            - containerPort: 8080     # Port Spring Boot listens on
+          # Best Practice: Readiness check ensures traffic only goes to "warm" apps
+          readinessProbe:
+            httpGet:
+              path: /actuator/health # Requires spring-boot-starter-actuator
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+
+# --- PART 2: SERVICE (The "Internal Phonebook") ---
+# This provides a stable internal IP address to reach your pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-api-service
+spec:
+  type: ClusterIP           # Standard internal-only service
+  selector:
+    app: hello-k8s-spring
+  ports:
+    - protocol: TCP
+      port: 80              # The port other things inside K8s will use
+      targetPort: 8080      # The port on the container itself
+
+---
+
+# --- PART 3: INGRESS (The "Front Door") ---
+# This exposes your service to the outside world (via NGINX).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spring-api-ingress
+  annotations:
+    # Essential for NGINX to handle the routing correctly 
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx   # Must match your Ingress Controller setup
+  rules:
+  - host: my-app.local      # Must match your Windows hosts file entry
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: spring-api-service
+            port:
+              number: 80
